@@ -9,7 +9,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Global Cache Settings
+# Global Cache Settings a
 # SCONS_CACHE for windows must be set in the build environment
 env:
   # GDExtension is still experimental, so we target latest instead of a "stable" Godot version.
