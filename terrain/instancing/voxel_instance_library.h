@@ -8,19 +8,22 @@
 #include "../../util/godot/core/string.h"
 #include "../../util/godot/core/string_name.h"
 #include "../../util/thread/mutex.h"
-#include "instance_library_item_listener.h"
+#include "voxel_instance_library_item.h"
 
 namespace zylann::voxel {
 
-class VoxelInstanceLibraryItem;
-class VoxelInstanceGenerator;
-
 // Contains a list of items that can be used by VoxelInstancer, associated with a unique ID
-class VoxelInstanceLibrary : public Resource, public IInstanceLibraryItemListener {
+class VoxelInstanceLibrary : public Resource, public VoxelInstanceLibraryItem::IListener {
 	GDCLASS(VoxelInstanceLibrary, Resource)
 
 public:
 	static const int MAX_ID = 0xffff;
+
+	class IListener {
+	public:
+		virtual ~IListener() {}
+		virtual void on_library_item_changed(int id, VoxelInstanceLibraryItem::ChangeType change) = 0;
+	};
 
 	~VoxelInstanceLibrary();
 
@@ -45,16 +48,8 @@ public:
 		}
 	}
 
-	template <typename F>
-	void for_each_item(F f) const {
-		for (auto it = _items.begin(); it != _items.end(); ++it) {
-			ZN_ASSERT(it->second.is_valid());
-			f(it->first, **it->second);
-		}
-	}
-
-	void add_listener(IInstanceLibraryItemListener *listener);
-	void remove_listener(IInstanceLibraryItemListener *listener);
+	void add_listener(IListener *listener);
+	void remove_listener(IListener *listener);
 
 #ifdef TOOLS_ENABLED
 	void get_configuration_warnings(PackedStringArray &warnings) const;
@@ -79,8 +74,8 @@ protected:
 	void _get_property_list(List<PropertyInfo> *p_list) const;
 
 private:
-	void on_library_item_changed(int id, IInstanceLibraryItemListener::ChangeType change) override;
-	void notify_listeners(int item_id, IInstanceLibraryItemListener::ChangeType change);
+	void on_library_item_changed(int id, VoxelInstanceLibraryItem::ChangeType change) override;
+	void notify_listeners(int item_id, VoxelInstanceLibraryItem::ChangeType change);
 
 	static void _bind_methods();
 
@@ -88,7 +83,7 @@ private:
 	// Using a map keeps items ordered, so the last item has highest ID
 	StdMap<int, Ref<VoxelInstanceLibraryItem>> _items;
 
-	StdVector<IInstanceLibraryItemListener *> _listeners;
+	StdVector<IListener *> _listeners;
 
 	struct PackedItems {
 		struct Lod {

@@ -14,12 +14,8 @@ class VoxelVoxLoader : public RefCounted {
 
 public:
 	// TODO GDX: Can't bind functions returning a `godot::Error` enum
-	static int /*Error*/ load_from_file(
-			String fpath,
-			Ref<godot::VoxelBuffer> p_voxels,
-			Ref<VoxelColorPalette> palette,
-			godot::VoxelBuffer::ChannelId dst_channel
-	);
+	int /*Error*/ load_from_file(String fpath, Ref<godot::VoxelBuffer> p_voxels, Ref<VoxelColorPalette> palette,
+			godot::VoxelBuffer::ChannelId dst_channel);
 	// TODO Have chunked loading for better memory usage
 	// TODO Saving
 

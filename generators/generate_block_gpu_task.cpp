@@ -247,8 +247,7 @@ void convert_gpu_output_sdf(VoxelBuffer &dst, Span<const float> src_data_f, cons
 				sd_data[i] = snorm_to_s8(sd_scale * src_data_f[i]);
 			}
 			dst.copy_channel_from(
-					sd_data.to_const(), box.size, Vector3i(), box.size, box.position, VoxelBuffer::CHANNEL_SDF
-			);
+					sd_data.to_const(), box.size, Vector3i(), box.size, box.position, VoxelBuffer::CHANNEL_SDF);
 		} break;
 
 		case VoxelBuffer::DEPTH_16_BIT: {
@@ -258,14 +257,12 @@ void convert_gpu_output_sdf(VoxelBuffer &dst, Span<const float> src_data_f, cons
 			}
 
 			dst.copy_channel_from(
-					sd_data.to_const(), box.size, Vector3i(), box.size, box.position, VoxelBuffer::CHANNEL_SDF
-			);
+					sd_data.to_const(), box.size, Vector3i(), box.size, box.position, VoxelBuffer::CHANNEL_SDF);
 		} break;
 
 		case VoxelBuffer::DEPTH_32_BIT: {
 			dst.copy_channel_from(
-					src_data_f.to_const(), box.size, Vector3i(), box.size, box.position, VoxelBuffer::CHANNEL_SDF
-			);
+					src_data_f.to_const(), box.size, Vector3i(), box.size, box.position, VoxelBuffer::CHANNEL_SDF);
 		} break;
 
 		case VoxelBuffer::DEPTH_64_BIT: {
@@ -296,8 +293,7 @@ void convert_gpu_output_single_texture(VoxelBuffer &dst, Span<const float> src_d
 	}
 
 	dst.copy_channel_from(
-			src_data_u16.to_const(), box.size, Vector3i(), box.size, box.position, VoxelBuffer::CHANNEL_INDICES
-	);
+			src_data_u16.to_const(), box.size, Vector3i(), box.size, box.position, VoxelBuffer::CHANNEL_INDICES);
 }
 
 template <typename T>
@@ -313,11 +309,7 @@ Span<const T> cast_floats(Span<const float> src_data_f, StdVector<uint8_t> &memo
 }
 
 void convert_gpu_output_uint(
-		VoxelBuffer &dst,
-		Span<const float> src_data_f,
-		const Box3i &box,
-		VoxelBuffer::ChannelId channel_index
-) {
+		VoxelBuffer &dst, Span<const float> src_data_f, const Box3i &box, VoxelBuffer::ChannelId channel_index) {
 	ZN_PROFILE_SCOPE();
 
 	const VoxelBuffer::Depth depth = dst.get_channel_depth(VoxelBuffer::CHANNEL_SDF);
@@ -325,47 +317,23 @@ void convert_gpu_output_uint(
 
 	switch (depth) {
 		case VoxelBuffer::DEPTH_8_BIT: {
-			dst.copy_channel_from(
-					cast_floats<uint8_t>(src_data_f, tls_temp),
-					box.size,
-					Vector3i(),
-					box.size,
-					box.position,
-					channel_index
-			);
+			dst.copy_channel_from(cast_floats<uint8_t>(src_data_f, tls_temp), box.size, Vector3i(), box.size,
+					box.position, channel_index);
 		} break;
 
 		case VoxelBuffer::DEPTH_16_BIT: {
-			dst.copy_channel_from(
-					cast_floats<uint16_t>(src_data_f, tls_temp),
-					box.size,
-					Vector3i(),
-					box.size,
-					box.position,
-					channel_index
-			);
+			dst.copy_channel_from(cast_floats<uint16_t>(src_data_f, tls_temp), box.size, Vector3i(), box.size,
+					box.position, channel_index);
 		} break;
 
 		case VoxelBuffer::DEPTH_32_BIT: {
-			dst.copy_channel_from(
-					cast_floats<uint32_t>(src_data_f, tls_temp),
-					box.size,
-					Vector3i(),
-					box.size,
-					box.position,
-					channel_index
-			);
+			dst.copy_channel_from(cast_floats<uint32_t>(src_data_f, tls_temp), box.size, Vector3i(), box.size,
+					box.position, channel_index);
 		} break;
 
 		case VoxelBuffer::DEPTH_64_BIT: {
-			dst.copy_channel_from(
-					cast_floats<uint64_t>(src_data_f, tls_temp),
-					box.size,
-					Vector3i(),
-					box.size,
-					box.position,
-					channel_index
-			);
+			dst.copy_channel_from(cast_floats<uint64_t>(src_data_f, tls_temp), box.size, Vector3i(), box.size,
+					box.position, channel_index);
 		} break;
 
 		default:
@@ -401,9 +369,7 @@ void GenerateBlockGPUTaskResult::convert_to_voxel_buffer(VoxelBuffer &dst) {
 }
 
 void GenerateBlockGPUTaskResult::convert_to_voxel_buffer(
-		Span<GenerateBlockGPUTaskResult> boxes_data,
-		VoxelBuffer &dst
-) {
+		Span<GenerateBlockGPUTaskResult> boxes_data, VoxelBuffer &dst) {
 	ZN_PROFILE_SCOPE();
 
 	for (GenerateBlockGPUTaskResult &box_data : boxes_data) {
@@ -439,14 +405,11 @@ void GenerateBlockGPUTask::collect(GPUTaskContext &ctx) {
 		for (unsigned int output_index = 0; output_index < generator_shader_outputs->outputs.size(); ++output_index) {
 			const VoxelGenerator::ShaderOutput &output_info = generator_shader_outputs->outputs[output_index];
 
-			GenerateBlockGPUTaskResult result(
-					box,
-					output_info.type,
+			GenerateBlockGPUTaskResult result(box, output_info.type,
 					// Get span for that specific output
 					outputs_bytes.sub(box_offset + size_per_output * output_index, size_per_output),
 					// Pass reference to the backing buffer to keep it valid until all consumers are done with it
-					ctx.downloaded_shared_output_data
-			);
+					ctx.downloaded_shared_output_data);
 
 			results.push_back(result);
 		}

@@ -9,7 +9,7 @@
 
 namespace zylann::voxel {
 
-struct InstanceLoadingTaskOutput {
+struct VoxelInstanceLoadingTaskOutput {
 	Vector3i render_block_position;
 	uint8_t layer_id;
 	// Tells which parts of the block contain edited data (non-generated).
@@ -18,8 +18,8 @@ struct InstanceLoadingTaskOutput {
 	StdVector<Transform3f> transforms;
 };
 
-struct InstancerTaskOutputQueue {
-	StdVector<InstanceLoadingTaskOutput> results;
+struct VoxelInstancerTaskOutputQueue {
+	StdVector<VoxelInstanceLoadingTaskOutput> results;
 	Mutex mutex;
 };
 

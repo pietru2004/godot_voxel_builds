@@ -11,8 +11,9 @@
 #include "../../util/godot/direct_multimesh_instance.h"
 #include "../../util/math/box3i.h"
 #include "../../util/memory/memory.h"
-#include "instance_library_item_listener.h"
-#include "up_mode.h"
+#include "voxel_instance_generator.h"
+#include "voxel_instance_library.h"
+#include "voxel_instance_library_multimesh_item.h"
 
 #ifdef TOOLS_ENABLED
 #include "../../util/godot/core/version.h"
@@ -32,16 +33,13 @@ namespace voxel {
 class VoxelNode;
 class VoxelInstancerRigidBody;
 class VoxelInstanceComponent;
-class VoxelInstanceLibrary;
-class VoxelInstanceLibraryItem;
 class VoxelInstanceLibrarySceneItem;
 class VoxelTool;
 class SaveBlockDataTask;
 class BufferedTaskScheduler;
 struct InstanceBlockData;
-struct InstancerQuickReloadingCache;
-struct InstancerTaskOutputQueue;
-struct InstanceLibraryMultiMeshItemSettings;
+struct VoxelInstancerQuickReloadingCache;
+struct VoxelInstancerTaskOutputQueue;
 
 // Note: a large part of this node could be made generic to support the sole idea of instancing within octants?
 // Even nodes like gridmaps could be rebuilt on top of this, if its concept of "grid" was decoupled.
@@ -49,16 +47,16 @@ struct InstanceLibraryMultiMeshItemSettings;
 
 // Add-on to voxel nodes, allowing to spawn elements on the surface.
 // These elements are rendered with hardware instancing, can have collisions, and also be persistent.
-class VoxelInstancer : public Node3D, public IInstanceLibraryItemListener {
+class VoxelInstancer : public Node3D, public VoxelInstanceLibrary::IListener {
 	GDCLASS(VoxelInstancer, Node3D)
 public:
 	static const int MAX_LOD = 8;
 
-	// I didn't want this enum to be here on the C++ side, because it prevents forward-declaring the class it is in.
-	// However Godot is forcing me to.
-	// `VARIANT_ENUM_CAST(ns1::ns2::Enum)` assumes the enum is in a class, so it generates its name as being `ns2.Enum`,
-	// which confuses docs and GDExtension dumps. There doesn't seem to be a way to register that enum as global either.
-	using UpMode = zylann::voxel::UpMode;
+	enum UpMode {
+		UP_MODE_POSITIVE_Y = VoxelInstanceGenerator::UP_MODE_POSITIVE_Y,
+		UP_MODE_SPHERE = VoxelInstanceGenerator::UP_MODE_SPHERE,
+		UP_MODE_COUNT = VoxelInstanceGenerator::UP_MODE_COUNT
+	};
 
 	VoxelInstancer();
 	~VoxelInstancer();
@@ -74,10 +72,7 @@ public:
 	// Actions
 
 	void save_all_modified_blocks(
-			BufferedTaskScheduler &tasks,
-			std::shared_ptr<AsyncDependencyTracker> tracker,
-			bool with_flush
-	);
+			BufferedTaskScheduler &tasks, std::shared_ptr<AsyncDependencyTracker> tracker, bool with_flush);
 
 	// Event handlers
 
@@ -88,10 +83,7 @@ public:
 	void on_area_edited(Box3i p_voxel_box);
 	void on_body_removed(Vector3i data_block_position, unsigned int render_block_index, unsigned int instance_index);
 	void on_scene_instance_removed(
-			Vector3i data_block_position,
-			unsigned int render_block_index,
-			unsigned int instance_index
-	);
+			Vector3i data_block_position, unsigned int render_block_index, unsigned int instance_index);
 	void on_scene_instance_modified(Vector3i data_block_position, unsigned int render_block_index);
 	void on_data_block_saved(Vector3i data_grid_position, unsigned int lod_index);
 
@@ -152,13 +144,8 @@ private:
 	void clear_blocks_in_layer(int layer_id);
 	void clear_layers();
 	void update_visibility();
-	SaveBlockDataTask *save_block(
-			Vector3i data_grid_pos,
-			int lod_index,
-			std::shared_ptr<AsyncDependencyTracker> tracker,
-			bool with_flush,
-			bool cache_while_saving
-	);
+	SaveBlockDataTask *save_block(Vector3i data_grid_pos, int lod_index,
+			std::shared_ptr<AsyncDependencyTracker> tracker, bool with_flush, bool cache_while_saving);
 
 	// Get a layer assuming it exists
 	Layer &get_layer(int id);
@@ -179,52 +166,25 @@ private:
 		Node3D *root = nullptr;
 	};
 
-	SceneInstance create_scene_instance(
-			const VoxelInstanceLibrarySceneItem &scene_item,
-			int instance_index,
-			unsigned int block_index,
-			Transform3D transform,
-			int data_block_size_po2
-	);
+	SceneInstance create_scene_instance(const VoxelInstanceLibrarySceneItem &scene_item, int instance_index,
+			unsigned int block_index, Transform3D transform, int data_block_size_po2);
 
-	void update_block_from_transforms(
-			int block_index,
-			Span<const Transform3f> transforms,
-			Vector3i grid_position,
-			Layer &layer,
-			const VoxelInstanceLibraryItem &item_base,
-			uint16_t layer_id,
-			World3D &world,
-			const Transform3D &block_transform,
-			Vector3 block_local_position
-	);
+	void update_block_from_transforms(int block_index, Span<const Transform3f> transforms, Vector3i grid_position,
+			Layer &layer, const VoxelInstanceLibraryItem &item_base, uint16_t layer_id, World3D &world,
+			const Transform3D &block_transform, Vector3 block_local_position);
 
-	void on_library_item_changed(int item_id, IInstanceLibraryItemListener::ChangeType change) override;
+	void on_library_item_changed(int item_id, VoxelInstanceLibraryItem::ChangeType change) override;
 
 	struct Block;
 
-	static void remove_floating_multimesh_instances(
-			Block &block,
-			const Transform3D &parent_transform,
-			Box3i p_voxel_box,
-			const VoxelTool &voxel_tool,
-			int block_size_po2
-	);
+	static void remove_floating_multimesh_instances(Block &block, const Transform3D &parent_transform,
+			Box3i p_voxel_box, const VoxelTool &voxel_tool, int block_size_po2);
 
-	static void remove_floating_scene_instances(
-			Block &block,
-			const Transform3D &parent_transform,
-			Box3i p_voxel_box,
-			const VoxelTool &voxel_tool,
-			int block_size_po2
-	);
+	static void remove_floating_scene_instances(Block &block, const Transform3D &parent_transform, Box3i p_voxel_box,
+			const VoxelTool &voxel_tool, int block_size_po2);
 
-	static void update_mesh_from_mesh_lod(
-			Block &block,
-			const InstanceLibraryMultiMeshItemSettings &settings,
-			bool hide_beyond_max_lod,
-			bool instancer_is_visible
-	);
+	static void update_mesh_from_mesh_lod(Block &block, const VoxelInstanceLibraryMultiMeshItem::Settings &settings,
+			bool hide_beyond_max_lod, bool instancer_is_visible);
 
 	Dictionary _b_debug_get_instance_counts() const;
 
@@ -293,7 +253,7 @@ private:
 		// Keys follows the data block coordinate system.
 		StdUnorderedSet<Vector3i> edited_data_blocks;
 
-		std::shared_ptr<InstancerQuickReloadingCache> quick_reload_cache;
+		std::shared_ptr<VoxelInstancerQuickReloadingCache> quick_reload_cache;
 
 		// FixedArray<MeshLodDistances, VoxelInstanceLibraryMultiMeshItem::MAX_MESH_LODS> mesh_lod_distances;
 	};
@@ -318,7 +278,7 @@ private:
 	// float _mesh_lod_update_camera_threshold_distance = 8.f;
 	unsigned int _mesh_lod_time_sliced_block_index = 0;
 
-	std::shared_ptr<InstancerTaskOutputQueue> _loading_results;
+	std::shared_ptr<VoxelInstancerTaskOutputQueue> _loading_results;
 
 #ifdef TOOLS_ENABLED
 	zylann::godot::DebugRenderer _debug_renderer;

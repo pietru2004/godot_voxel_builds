@@ -5,7 +5,7 @@
 ### General config, applies to all languages ###
 BasedOnStyle:  LLVM
 AccessModifierOffset: -4
-AlignAfterOpenBracket: BlockIndent
+AlignAfterOpenBracket: DontAlign
 # AlignArrayOfStructures: None
 # AlignConsecutiveMacros: None
 # AlignConsecutiveAssignments: None
@@ -32,11 +32,10 @@ AllowShortFunctionsOnASingleLine: Empty
 # AlwaysBreakAfterReturnType: None
 # AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: Yes
-BreakAfterReturnType: Automatic
 # AttributeMacros:
 #   - __capability
-BinPackArguments: false
-BinPackParameters: false
+# BinPackArguments: true
+# BinPackParameters: true
 #BraceWrapping:
 #   AfterCaseLabel:  false
 #   AfterClass:      false
@@ -120,11 +119,7 @@ KeepEmptyLinesAtTheStartOfBlocks: false
 # PenaltyBreakString: 1000
 # PenaltyBreakTemplateDeclaration: 10
 # PenaltyExcessCharacter: 1000000
-
-# Original was 60. I increased it after adding `AlignAfterOpenBracket: BlockIndent` and disabling binpacking of 
-# arguments, because for some reason return types sometimes ended up on their own line, not sure why.
-PenaltyReturnTypeOnItsOwnLine: 600
-
+# PenaltyReturnTypeOnItsOwnLine: 60
 # PenaltyIndentedWhitespace: 0
 # PointerAlignment: Right
 # PPIndentWidth:   -1

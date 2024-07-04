@@ -13,11 +13,7 @@ namespace zylann {
 
 template <typename Noise_F>
 inline math::Interval get_noise_range_2d(
-		Noise_F noise_func,
-		const math::Interval &x,
-		const math::Interval &y,
-		float max_derivative
-) {
+		Noise_F noise_func, const math::Interval &x, const math::Interval &y, float max_derivative) {
 	// Any unit vector away from a given evaluation point, the maximum difference is a fixed number.
 	// We can use that number to find a bounding range within our rectangular interval.
 	const float max_derivative_half_diagonal = 0.5f * max_derivative * Math_SQRT2;
@@ -30,18 +26,12 @@ inline math::Interval get_noise_range_2d(
 
 	return math::Interval( //
 			math::maxf(mid_value - max_derivative_half_diagonal * diag, -1),
-			math::minf(mid_value + max_derivative_half_diagonal * diag, 1)
-	);
+			math::minf(mid_value + max_derivative_half_diagonal * diag, 1));
 }
 
 template <typename Noise_F>
-inline math::Interval get_noise_range_3d(
-		Noise_F noise_func,
-		const math::Interval &x,
-		const math::Interval &y,
-		const math::Interval &z,
-		float max_derivative
-) {
+inline math::Interval get_noise_range_3d(Noise_F noise_func, const math::Interval &x, const math::Interval &y,
+		const math::Interval &z, float max_derivative) {
 	const float max_derivative_half_diagonal = 0.5f * max_derivative * Math_SQRT2;
 
 	const real_t mid_x = 0.5 * (x.min + x.max);
@@ -53,8 +43,7 @@ inline math::Interval get_noise_range_3d(
 
 	return math::Interval( //
 			math::maxf(mid_value - max_derivative_half_diagonal * diag, -1),
-			math::minf(mid_value + max_derivative_half_diagonal * diag, 1)
-	);
+			math::minf(mid_value + max_derivative_half_diagonal * diag, 1));
 }
 
 } // namespace zylann

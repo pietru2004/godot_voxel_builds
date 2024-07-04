@@ -115,20 +115,15 @@ float VoxelBlockyModelCube::get_height() const {
 
 namespace {
 
-void bake_cube_geometry(
-		const VoxelBlockyModelCube &config,
-		VoxelBlockyModel::BakedData &baked_data,
-		Vector2i p_atlas_size,
-		bool bake_tangents
-) {
+void bake_cube_geometry(const VoxelBlockyModelCube &config, VoxelBlockyModel::BakedData &baked_data,
+		Vector2i p_atlas_size, bool bake_tangents) {
 	const float height = config.get_height();
 
 	baked_data.model.surface_count = 1;
 	VoxelBlockyModel::BakedData::Surface &surface = baked_data.model.surfaces[0];
 
 	for (unsigned int side = 0; side < Cube::SIDE_COUNT; ++side) {
-		VoxelBlockyModel::BakedData::SideSurface &side_surface = surface.sides[side];
-		StdVector<Vector3f> &positions = side_surface.positions;
+		StdVector<Vector3f> &positions = surface.side_positions[side];
 		positions.resize(4);
 		for (unsigned int i = 0; i < 4; ++i) {
 			int corner = Cube::g_side_corners[side][i];
@@ -139,7 +134,7 @@ void bake_cube_geometry(
 			positions[i] = p;
 		}
 
-		StdVector<int> &indices = side_surface.indices;
+		StdVector<int> &indices = surface.side_indices[side];
 		indices.resize(6);
 		for (unsigned int i = 0; i < 6; ++i) {
 			indices[i] = Cube::g_side_quad_triangles[side][i];
@@ -171,9 +166,8 @@ void bake_cube_geometry(
 	const Vector2f s = Vector2f(1.0f) / atlas_size;
 
 	for (unsigned int side = 0; side < Cube::SIDE_COUNT; ++side) {
-		VoxelBlockyModel::BakedData::SideSurface &side_surface = surface.sides[side];
-		StdVector<Vector2f> &uvs = side_surface.uvs;
-		uvs.resize(4);
+		surface.side_uvs[side].resize(4);
+		StdVector<Vector2f> &uvs = surface.side_uvs[side];
 
 		const Vector2f *uv_norm = Cube::g_side_normals[side].y != 0 ? uv_norm_top_bottom : uv_norm_side;
 
@@ -182,7 +176,7 @@ void bake_cube_geometry(
 		}
 
 		if (bake_tangents) {
-			StdVector<float> &tangents = side_surface.tangents;
+			StdVector<float> &tangents = surface.side_tangents[side];
 			for (unsigned int i = 0; i < 4; ++i) {
 				for (unsigned int j = 0; j < 4; ++j) {
 					tangents.push_back(Cube::g_side_tangents[side][j]);
@@ -276,11 +270,9 @@ void VoxelBlockyModelCube::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_atlas_size_in_tiles"), &VoxelBlockyModelCube::get_atlas_size_in_tiles);
 
 	ADD_PROPERTY(
-			PropertyInfo(Variant::FLOAT, "height", PROPERTY_HINT_RANGE, "0.001,1,0.001"), "set_height", "get_height"
-	);
-	ADD_PROPERTY(
-			PropertyInfo(Variant::VECTOR2I, "atlas_size_in_tiles"), "set_atlas_size_in_tiles", "get_atlas_size_in_tiles"
-	);
+			PropertyInfo(Variant::FLOAT, "height", PROPERTY_HINT_RANGE, "0.001,1,0.001"), "set_height", "get_height");
+	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "atlas_size_in_tiles"), "set_atlas_size_in_tiles",
+			"get_atlas_size_in_tiles");
 }
 
 } // namespace zylann::voxel

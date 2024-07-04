@@ -50,8 +50,6 @@
 #include "terrain/fixed_lod/voxel_terrain.h"
 #include "terrain/fixed_lod/voxel_terrain_multiplayer_synchronizer.h"
 #include "terrain/instancing/voxel_instance_component.h"
-#include "terrain/instancing/voxel_instance_library.h"
-#include "terrain/instancing/voxel_instance_library_multimesh_item.h"
 #include "terrain/instancing/voxel_instance_library_scene_item.h"
 #include "terrain/instancing/voxel_instancer.h"
 #include "terrain/instancing/voxel_instancer_rigidbody.h"
@@ -60,7 +58,6 @@
 #include "terrain/voxel_mesh_block.h"
 #include "terrain/voxel_save_completion_tracker.h"
 #include "terrain/voxel_viewer.h"
-#include "util/godot/check_ref_ownership.h"
 #include "util/macros.h"
 #include "util/noise/fast_noise_lite/fast_noise_lite.h"
 #include "util/noise/fast_noise_lite/fast_noise_lite_gradient.h"
@@ -315,10 +312,8 @@ void initialize_voxel_module(ModuleInitializationLevel p_level) {
 
 #ifdef ZN_GODOT
 		if (RenderingDevice::get_singleton() != nullptr) {
-			ZN_PRINT_VERBOSE(
-					format("TextureArray max layers: {}",
-						   RenderingDevice::get_singleton()->limit_get(RenderingDevice::LIMIT_MAX_TEXTURE_ARRAY_LAYERS))
-			);
+			ZN_PRINT_VERBOSE(format("TextureArray max layers: {}",
+					RenderingDevice::get_singleton()->limit_get(RenderingDevice::LIMIT_MAX_TEXTURE_ARRAY_LAYERS)));
 		}
 #else
 		// TODO GDX: Not possible to access the default `RenderingDevice` to query its limits
@@ -340,12 +335,11 @@ void initialize_voxel_module(ModuleInitializationLevel p_level) {
 		VoxelStringNames::create_singleton();
 		pg::NodeTypeDB::create_singleton();
 
-		const zylann::voxel::godot::VoxelEngine::Config config =
-				zylann::voxel::godot::VoxelEngine::get_config_from_godot();
-#ifdef TOOLS_ENABLED
-		CheckRefCountDoesNotChange::set_enabled(config.ownership_checks);
-#endif
-		VoxelEngine::create_singleton(config.inner);
+		unsigned int main_thread_budget_usec;
+		const VoxelEngine::ThreadsConfig threads_config =
+				zylann::voxel::godot::VoxelEngine::get_config_from_godot(main_thread_budget_usec);
+		VoxelEngine::create_singleton(threads_config);
+		VoxelEngine::get_singleton().set_main_thread_time_budget_usec(main_thread_budget_usec);
 #if defined(ZN_GODOT)
 		// RenderingServer can be null with `tests=yes`.
 		// TODO There is no hook to integrate modules to Godot's test framework, update this when it gets improved
@@ -356,8 +350,7 @@ void initialize_voxel_module(ModuleInitializationLevel p_level) {
 			// `can_create_resources_async` but this is internal. AFAIK `is_low_end` will be `true` only for OpenGL
 			// backends, which are the only ones not supporting async resource creation.
 			VoxelEngine::get_singleton().set_threaded_graphics_resource_building_enabled(
-					RenderingServer::get_singleton()->is_low_end() == false
-			);
+					RenderingServer::get_singleton()->is_low_end() == false);
 		}
 #else
 		// TODO GDX: RenderingServer::is_low_end() is not exposed, can't tell if we can generate graphics resources in
@@ -368,8 +361,7 @@ void initialize_voxel_module(ModuleInitializationLevel p_level) {
 		zylann::godot::add_singleton("VoxelEngine", zylann::voxel::godot::VoxelEngine::get_singleton());
 
 		VoxelMetadataFactory::get_singleton().add_constructor_by_type<zylann::voxel::godot::VoxelMetadataVariant>(
-				zylann::voxel::godot::METADATA_TYPE_VARIANT
-		);
+				zylann::voxel::godot::METADATA_TYPE_VARIANT);
 
 		VoxelMesherTransvoxel::load_static_resources();
 
@@ -538,11 +530,8 @@ void uninitialize_voxel_module(ModuleInitializationLevel p_level) {
 #ifdef ZN_GODOT_EXTENSION
 extern "C" {
 // Library entry point
-GDExtensionBool GDE_EXPORT voxel_library_init(
-		GDExtensionInterfaceGetProcAddress p_get_proc_address,
-		GDExtensionClassLibraryPtr p_library,
-		GDExtensionInitialization *r_initialization
-) {
+GDExtensionBool GDE_EXPORT voxel_library_init(GDExtensionInterfaceGetProcAddress p_get_proc_address,
+		GDExtensionClassLibraryPtr p_library, GDExtensionInitialization *r_initialization) {
 	godot::GDExtensionBinding::InitObject init_obj(p_get_proc_address, p_library, r_initialization);
 
 	init_obj.register_initializer(initialize_voxel_module);

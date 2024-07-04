@@ -72,8 +72,7 @@ void VoxelBlockyLibrary::bake() {
 
 	uint64_t time_spent = Time::get_singleton()->get_ticks_usec() - time_before;
 	ZN_PRINT_VERBOSE(
-			format("Took {} us to bake VoxelLibrary, indexed {} materials", time_spent, _indexed_materials.size())
-	);
+			format("Took {} us to bake VoxelLibrary, indexed {} materials", time_spent, _indexed_materials.size()));
 
 	_needs_baking = false;
 }
@@ -89,7 +88,6 @@ int VoxelBlockyLibrary::get_model_index_from_resource_name(String resource_name)
 }
 
 int VoxelBlockyLibrary::add_model(Ref<VoxelBlockyModel> model) {
-	ZN_ASSERT_RETURN_V_MSG(_voxel_models.size() < MAX_MODELS, -1, "Reached maximum supported amount of models");
 	const int index = _voxel_models.size();
 	_voxel_models.push_back(model);
 	_needs_baking = true;
@@ -106,8 +104,6 @@ bool VoxelBlockyLibrary::_set(const StringName &p_name, const Variant &p_value) 
 	String property_name(p_name);
 	if (property_name.begins_with("voxels/")) {
 		unsigned int idx = property_name.get_slicec('/', 1).to_int();
-		ZN_ASSERT_RETURN_V(idx < MAX_MODELS, false);
-
 		Ref<VoxelBlockyModel> legacy_model = p_value;
 
 		if (legacy_model.is_valid()) {
@@ -183,8 +179,7 @@ void VoxelBlockyLibrary::get_configuration_warnings(PackedStringArray &out_warni
 	if (!has_solid_model) {
 		out_warnings.append(
 				String(ZN_TTR("The {0} only has empty {1}s."))
-						.format(varray(VoxelBlockyLibrary::get_class_static(), VoxelBlockyModel::get_class_static()))
-		);
+						.format(varray(VoxelBlockyLibrary::get_class_static(), VoxelBlockyModel::get_class_static())));
 	}
 
 	if (null_indices.size() > 0) {
@@ -212,20 +207,12 @@ TypedArray<VoxelBlockyModel> VoxelBlockyLibrary::_b_get_models() const {
 }
 
 void VoxelBlockyLibrary::_b_set_models(TypedArray<VoxelBlockyModel> models) {
-	unsigned int count = models.size();
-	if (count > MAX_MODELS) {
-		ZN_PRINT_ERROR(
-				format("Setting more than {} is not supported (received {}). Extra models will not be added.",
-					   MAX_MODELS,
-					   models.size())
-		);
-		count = MAX_MODELS;
-	}
-	_voxel_models.resize(count);
-	for (unsigned int i = 0; i < count; ++i) {
+	const size_t prev_size = _voxel_models.size();
+	_voxel_models.resize(models.size());
+	for (int i = 0; i < models.size(); ++i) {
 		_voxel_models[i] = models[i];
 	}
-	_needs_baking = true;
+	_needs_baking = (_voxel_models.size() != prev_size);
 }
 
 int VoxelBlockyLibrary::_b_deprecated_get_voxel_index_from_name(String p_name) const {
@@ -237,29 +224,19 @@ void VoxelBlockyLibrary::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_models"), &VoxelBlockyLibrary::_b_get_models);
 	ClassDB::bind_method(D_METHOD("set_models"), &VoxelBlockyLibrary::_b_set_models);
 
-	ClassDB::bind_method(D_METHOD("add_model", "model"), &VoxelBlockyLibrary::add_model);
+	ClassDB::bind_method(D_METHOD("add_model"), &VoxelBlockyLibrary::add_model);
 
 	ClassDB::bind_method(D_METHOD("get_model", "index"), &VoxelBlockyLibrary::_b_get_model);
-	ClassDB::bind_method(
-			D_METHOD("get_model_index_from_resource_name", "name"),
-			&VoxelBlockyLibrary::get_model_index_from_resource_name
-	);
+	ClassDB::bind_method(D_METHOD("get_model_index_from_resource_name", "name"),
+			&VoxelBlockyLibrary::get_model_index_from_resource_name);
 
 	// Legacy
-	ClassDB::bind_method(
-			D_METHOD("get_voxel_index_from_name", "name"), &VoxelBlockyLibrary::_b_deprecated_get_voxel_index_from_name
-	);
+	ClassDB::bind_method(D_METHOD("get_voxel_index_from_name", "name"),
+			&VoxelBlockyLibrary::_b_deprecated_get_voxel_index_from_name);
 
-	ADD_PROPERTY(
-			PropertyInfo(
-					Variant::ARRAY,
-					"models",
-					PROPERTY_HINT_ARRAY_TYPE,
-					MAKE_RESOURCE_TYPE_HINT(VoxelBlockyModel::get_class_static())
-			),
-			"set_models",
-			"get_models"
-	);
+	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "models", PROPERTY_HINT_ARRAY_TYPE,
+						 MAKE_RESOURCE_TYPE_HINT(VoxelBlockyModel::get_class_static())),
+			"set_models", "get_models");
 }
 
 } // namespace zylann::voxel

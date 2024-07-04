@@ -104,12 +104,21 @@ VoxelGenerator::Result VoxelGeneratorFlat::generate_block(VoxelGenerator::VoxelQ
 	} else {
 		// Blocky
 
-		const float rh_world = params.height - origin.y;
-		const int irh_world = static_cast<int>(rh_world);
-		if (irh_world > 0) {
-			const int irh_voxels = math::min(math::arithmetic_rshift(irh_world, input.lod), bs.y);
-			out_buffer.fill_area(params.voxel_type, Vector3i(0, 0, 0), Vector3i(bs.x, irh_voxels, bs.z), channel);
-		}
+		int gz = origin.z;
+		for (int z = 0; z < bs.z; ++z, gz += stride) {
+			int gx = origin.x;
+			for (int x = 0; x < bs.x; ++x, gx += stride) {
+				const float h = params.height - origin.y;
+				int ih = int(h);
+				if (ih > 0) {
+					if (ih > bs.y) {
+						ih = bs.y;
+					}
+					out_buffer.fill_area(params.voxel_type, Vector3i(x, 0, z), Vector3i(x + 1, ih, z + 1), channel);
+				}
+
+			} // for x
+		} // for z
 	} // use_sdf
 
 	return result;
@@ -133,17 +142,11 @@ void VoxelGeneratorFlat::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_height", "h"), &VoxelGeneratorFlat::set_height);
 	ClassDB::bind_method(D_METHOD("get_height"), &VoxelGeneratorFlat::get_height);
 
-	ADD_PROPERTY(
-			PropertyInfo(Variant::INT, "channel", PROPERTY_HINT_ENUM, godot::VoxelBuffer::CHANNEL_ID_HINT_STRING),
-			"set_channel",
-			"get_channel"
-	);
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "channel", PROPERTY_HINT_ENUM, godot::VoxelBuffer::CHANNEL_ID_HINT_STRING),
+			"set_channel", "get_channel");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "height"), "set_height", "get_height");
-	ADD_PROPERTY(
-			PropertyInfo(Variant::INT, "voxel_type", PROPERTY_HINT_RANGE, "0,65536,1"),
-			"set_voxel_type",
-			"get_voxel_type"
-	);
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "voxel_type", PROPERTY_HINT_RANGE, "0,65536,1"), "set_voxel_type",
+			"get_voxel_type");
 }
 
 } // namespace zylann::voxel

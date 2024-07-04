@@ -17,7 +17,7 @@ void VoxelModifierMesh::set_mesh_sdf(Ref<VoxelMeshSDF> mesh_sdf) {
 
 void VoxelModifierMesh::set_isolevel(float isolevel) {
 	RWLockWrite wlock(_rwlock);
-	if (_isolevel == isolevel) {
+	if (isolevel == isolevel) {
 		return;
 	}
 	_isolevel = isolevel;
@@ -52,7 +52,7 @@ void VoxelModifierMesh::apply(VoxelModifierContext ctx) const {
 	const Transform3D buffer_to_world = model_to_world * buffer_to_model;
 
 	Span<const float> buffer_sdf;
-	ZN_ASSERT_RETURN(buffer.get_channel_data_read_only(VoxelBuffer::CHANNEL_SDF, buffer_sdf));
+	ZN_ASSERT_RETURN(buffer.get_channel_data(VoxelBuffer::CHANNEL_SDF, buffer_sdf));
 	const float smoothness = get_smoothness();
 
 	ops::SdfBufferShape shape;

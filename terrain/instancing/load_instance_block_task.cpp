@@ -8,22 +8,22 @@
 #include "../../util/math/conv.h"
 #include "../../util/profiling.h"
 #include "generate_instances_block_task.h"
-#include "instancer_quick_reloading_cache.h"
+#include "voxel_instancer_quick_reloading_cache.h"
 
 namespace zylann::voxel {
 
 LoadInstanceChunkTask::LoadInstanceChunkTask( //
-		std::shared_ptr<InstancerTaskOutputQueue> output_queue, //
+		std::shared_ptr<VoxelInstancerTaskOutputQueue> output_queue, //
 		Ref<VoxelStream> stream, //
-		std::shared_ptr<InstancerQuickReloadingCache> quick_reload_cache,
+		std::shared_ptr<VoxelInstancerQuickReloadingCache> quick_reload_cache,
 		Ref<VoxelInstanceLibrary> library, //
 		Array mesh_arrays, //
 		Vector3i grid_position, //
 		uint8_t lod_index, //
 		uint8_t instance_block_size, //
 		uint8_t data_block_size, //
-		UpMode up_mode //
-) :
+		uint8_t up_mode //
+		) :
 		//
 		_output_queue(output_queue), //
 		_stream(stream), //
@@ -152,9 +152,8 @@ void LoadInstanceChunkTask::run(ThreadedTaskContext &ctx) {
 					const int layer_id = loaded_layer_data.id;
 					size_t layer_index;
 					// Not using a hashmap here, this array is usually small
-					if (!find(to_span_const(layers), layer_index, [layer_id](const Layer &layer) {
-							return layer.id == layer_id;
-						})) {
+					if (!find(to_span_const(layers), layer_index,
+								[layer_id](const Layer &layer) { return layer.id == layer_id; })) {
 						layer_index = layers.size();
 						Layer layer;
 						layer.id = layer_id;
@@ -208,9 +207,8 @@ void LoadInstanceChunkTask::run(ThreadedTaskContext &ctx) {
 					size_t layer_index;
 					// Not using a hashmap here, this array is usually small
 					const int layer_id = item.id;
-					if (!find(to_span_const(layers), layer_index, [layer_id](const Layer &layer) {
-							return layer.id == layer_id;
-						})) {
+					if (!find(to_span_const(layers), layer_index,
+								[layer_id](const Layer &layer) { return layer.id == layer_id; })) {
 						layer_index = layers.size();
 						layers.push_back(Layer());
 					}
@@ -253,7 +251,7 @@ void LoadInstanceChunkTask::run(ThreadedTaskContext &ctx) {
 
 	// Post results
 	for (Layer &layer : layers) {
-		InstanceLoadingTaskOutput o;
+		VoxelInstanceLoadingTaskOutput o;
 		o.layer_id = layer.id;
 		// Will normally be full
 		o.edited_mask = layer.edited_mask;

@@ -24,9 +24,9 @@ VoxelEngine &VoxelEngine::get_singleton() {
 	return *g_voxel_engine;
 }
 
-void VoxelEngine::create_singleton(Config config) {
+void VoxelEngine::create_singleton(ThreadsConfig threads_config) {
 	ZN_ASSERT_MSG(g_voxel_engine == nullptr, "Creating singleton twice");
-	g_voxel_engine = ZN_NEW(VoxelEngine(config));
+	g_voxel_engine = ZN_NEW(VoxelEngine(threads_config));
 	// Do separately because it involves accessing `g_voxel_engine`
 	g_voxel_engine->load_shaders();
 }
@@ -37,21 +37,23 @@ void VoxelEngine::destroy_singleton() {
 	g_voxel_engine = nullptr;
 }
 
-VoxelEngine::VoxelEngine(Config config) {
+VoxelEngine::VoxelEngine(ThreadsConfig threads_config) {
 	const int hw_threads_hint = Thread::get_hardware_concurrency();
 	ZN_PRINT_VERBOSE(format("Voxel: HW threads hint: {}", hw_threads_hint));
 
-	ZN_ASSERT(config.thread_count_margin_below_max >= 0);
-	ZN_ASSERT(config.thread_count_minimum >= 1);
-	ZN_ASSERT(config.thread_count_ratio_over_max >= 0.f);
+	ZN_ASSERT(threads_config.thread_count_margin_below_max >= 0);
+	ZN_ASSERT(threads_config.thread_count_minimum >= 1);
+	ZN_ASSERT(threads_config.thread_count_ratio_over_max >= 0.f);
 
 	// Compute thread count for general pool.
 	// Note that the I/O thread counts as one used thread and will always be present.
 
-	const int maximum_thread_count =
-			math::max(hw_threads_hint - config.thread_count_margin_below_max, config.thread_count_minimum);
-	const int thread_count_by_ratio = int(Math::round(float(config.thread_count_ratio_over_max) * hw_threads_hint));
-	const int thread_count = math::clamp(thread_count_by_ratio, config.thread_count_minimum, maximum_thread_count);
+	const int maximum_thread_count = math::max(
+			hw_threads_hint - threads_config.thread_count_margin_below_max, threads_config.thread_count_minimum);
+	const int thread_count_by_ratio =
+			int(Math::round(float(threads_config.thread_count_ratio_over_max) * hw_threads_hint));
+	const int thread_count =
+			math::clamp(thread_count_by_ratio, threads_config.thread_count_minimum, maximum_thread_count);
 	ZN_PRINT_VERBOSE(format("Voxel: automatic thread count set to {}", thread_count));
 
 	if (thread_count > hw_threads_hint) {
@@ -96,8 +98,6 @@ VoxelEngine::VoxelEngine(Config config) {
 	} else {
 		ZN_PRINT_VERBOSE("Could not create local RenderingDevice, GPU functionality won't be supported.");
 	}
-
-	set_main_thread_time_budget_usec(config.main_thread_budget_usec);
 }
 
 void VoxelEngine::load_shaders() {
@@ -110,29 +110,21 @@ void VoxelEngine::load_shaders() {
 		_detail_gather_hits_shader.load_from_glsl(g_detail_gather_hits_shader, "zylann.voxel.detail_gather_hits");
 		_detail_normalmap_shader.load_from_glsl(g_detail_normalmap_shader, "zylann.voxel.detail_normalmap_shader");
 
-		_detail_modifier_sphere_shader.load_from_glsl(
-				String(g_detail_modifier_shader_template_0) + String(g_modifier_sphere_shader_snippet) +
-						String(g_detail_modifier_shader_template_1),
-				"zylann.voxel.detail_modifier_sphere_shader"
-		);
+		_detail_modifier_sphere_shader.load_from_glsl(String(g_detail_modifier_shader_template_0) +
+						String(g_modifier_sphere_shader_snippet) + String(g_detail_modifier_shader_template_1),
+				"zylann.voxel.detail_modifier_sphere_shader");
 
-		_detail_modifier_mesh_shader.load_from_glsl(
-				String(g_detail_modifier_shader_template_0) + String(g_modifier_mesh_shader_snippet) +
-						String(g_detail_modifier_shader_template_1),
-				"zylann.voxel.detail_modifier_mesh_shader"
-		);
+		_detail_modifier_mesh_shader.load_from_glsl(String(g_detail_modifier_shader_template_0) +
+						String(g_modifier_mesh_shader_snippet) + String(g_detail_modifier_shader_template_1),
+				"zylann.voxel.detail_modifier_mesh_shader");
 
-		_block_modifier_sphere_shader.load_from_glsl(
-				String(g_block_modifier_shader_template_0) + String(g_modifier_sphere_shader_snippet) +
-						String(g_block_modifier_shader_template_1),
-				"zylann.voxel.block_modifier_sphere_shader"
-		);
+		_block_modifier_sphere_shader.load_from_glsl(String(g_block_modifier_shader_template_0) +
+						String(g_modifier_sphere_shader_snippet) + String(g_block_modifier_shader_template_1),
+				"zylann.voxel.block_modifier_sphere_shader");
 
-		_block_modifier_mesh_shader.load_from_glsl(
-				String(g_block_modifier_shader_template_0) + String(g_modifier_mesh_shader_snippet) +
-						String(g_block_modifier_shader_template_1),
-				"zylann.voxel.block_modifier_mesh_shader"
-		);
+		_block_modifier_mesh_shader.load_from_glsl(String(g_block_modifier_shader_template_0) +
+						String(g_modifier_mesh_shader_snippet) + String(g_block_modifier_shader_template_1),
+				"zylann.voxel.block_modifier_mesh_shader");
 	}
 }
 
@@ -223,14 +215,14 @@ void VoxelEngine::set_viewer_position(ViewerID viewer_id, Vector3 position) {
 	viewer.world_position = position;
 }
 
-void VoxelEngine::set_viewer_distances(ViewerID viewer_id, Viewer::Distances distances) {
+void VoxelEngine::set_viewer_distance(ViewerID viewer_id, unsigned int distance) {
 	Viewer &viewer = _world.viewers.get(viewer_id);
-	viewer.view_distances = distances;
+	viewer.view_distance = distance;
 }
 
-VoxelEngine::Viewer::Distances VoxelEngine::get_viewer_distances(ViewerID viewer_id) const {
+unsigned int VoxelEngine::get_viewer_distance(ViewerID viewer_id) const {
 	const Viewer &viewer = _world.viewers.get(viewer_id);
-	return viewer.view_distances;
+	return viewer.view_distance;
 }
 
 void VoxelEngine::set_viewer_requires_visuals(ViewerID viewer_id, bool enabled) {
@@ -278,9 +270,7 @@ bool VoxelEngine::viewer_exists(ViewerID viewer_id) const {
 }
 
 void VoxelEngine::push_main_thread_time_spread_task(
-		zylann::ITimeSpreadTask *task,
-		TimeSpreadTaskRunner::Priority priority
-) {
+		zylann::ITimeSpreadTask *task, TimeSpreadTaskRunner::Priority priority) {
 	_time_spread_task_runner.push(task, priority);
 }
 
@@ -332,10 +322,8 @@ void VoxelEngine::process() {
 	ZN_PROFILE_PLOT("Progressive tasks", int64_t(_progressive_task_runner.get_pending_count()));
 	ZN_PROFILE_PLOT("Threaded tasks", int64_t(_general_thread_pool.get_debug_remaining_tasks()));
 	ZN_PROFILE_PLOT("Objects", int64_t(ObjectDB::get_object_count()));
-	ZN_PROFILE_PLOT(
-			"ZN Std Allocator",
-			int64_t(StdDefaultAllocatorCounters::g_allocated - StdDefaultAllocatorCounters::g_deallocated)
-	);
+	ZN_PROFILE_PLOT("ZN Std Allocator",
+			int64_t(StdDefaultAllocatorCounters::g_allocated - StdDefaultAllocatorCounters::g_deallocated));
 
 	// Receive generation and meshing results
 	_general_thread_pool.dequeue_completed_tasks([](zylann::IThreadedTask *task) {
@@ -379,7 +367,9 @@ void VoxelEngine::sync_viewers_task_priority_data() {
 	unsigned int max_distance = 0;
 	_world.viewers.for_each_value([&i, &max_distance, &dep](Viewer &viewer) {
 		dep.viewers[i] = to_vec3f(viewer.world_position);
-		max_distance = math::max(max_distance, viewer.view_distances.max());
+		if (viewer.view_distance > max_distance) {
+			max_distance = viewer.view_distance;
+		}
 		++i;
 	});
 

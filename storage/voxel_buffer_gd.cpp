@@ -24,8 +24,7 @@ VoxelBuffer::VoxelBuffer(VoxelBuffer::Allocator allocator) {
 		allocator = ALLOCATOR_DEFAULT;
 	}
 	_buffer = make_shared_instance<zylann::voxel::VoxelBuffer>(
-			static_cast<zylann::voxel::VoxelBuffer::Allocator>(allocator)
-	);
+			static_cast<zylann::voxel::VoxelBuffer::Allocator>(allocator));
 }
 
 VoxelBuffer::VoxelBuffer(std::shared_ptr<zylann::voxel::VoxelBuffer> &other) {
@@ -74,12 +73,7 @@ void VoxelBuffer::copy_channel_from(Ref<VoxelBuffer> other, unsigned int channel
 }
 
 void VoxelBuffer::copy_channel_from_area(
-		Ref<VoxelBuffer> other,
-		Vector3i src_min,
-		Vector3i src_max,
-		Vector3i dst_min,
-		unsigned int channel
-) {
+		Ref<VoxelBuffer> other, Vector3i src_min, Vector3i src_max, Vector3i dst_min, unsigned int channel) {
 	ZN_DSTACK();
 	ERR_FAIL_COND(other.is_null());
 	_buffer->copy_channel_from(other->get_buffer(), src_min, src_max, dst_min, channel);
@@ -158,7 +152,7 @@ void VoxelBuffer::remap_values(unsigned int channel_index, PackedInt32Array map)
 	switch (depth) {
 		case zylann::voxel::VoxelBuffer::DEPTH_8_BIT: {
 			Span<uint8_t> values;
-			ZN_ASSERT_RETURN(_buffer->get_channel_as_bytes(channel_index, values));
+			ZN_ASSERT_RETURN(_buffer->get_channel_raw(channel_index, values));
 			for (uint8_t &v : values) {
 				if (v < map_r.size()) {
 					v = map_r[v];
@@ -229,8 +223,7 @@ void VoxelBuffer::for_each_voxel_metadata(const Callable &callback) const {
 		Variant retval; // We don't care about the return value, Callable API requires it
 		callback.callp(args, 2, retval, err);
 		ERR_FAIL_COND_MSG(
-				err.error != Callable::CallError::CALL_OK, String("Callable failed at {0}").format(varray(key))
-		);
+				err.error != Callable::CallError::CALL_OK, String("Callable failed at {0}").format(varray(key)));
 
 #elif defined(ZN_GODOT_EXTENSION)
 		// TODO Error reporting? GodotCpp doesn't expose anything
@@ -257,8 +250,7 @@ void VoxelBuffer::for_each_voxel_metadata_in_area(const Callable &callback, Vect
 		Variant retval; // We don't care about the return value, Callable API requires it
 		callback.callp(args, 2, retval, err);
 		ERR_FAIL_COND_MSG(
-				err.error != Callable::CallError::CALL_OK, String("Callable failed at {0}").format(varray(key))
-		);
+				err.error != Callable::CallError::CALL_OK, String("Callable failed at {0}").format(varray(key)));
 
 #elif defined(ZN_GODOT_EXTENSION)
 		// TODO Error reporting? GodotCpp doesn't expose anything
@@ -270,15 +262,10 @@ void VoxelBuffer::for_each_voxel_metadata_in_area(const Callable &callback, Vect
 }
 
 void VoxelBuffer::copy_voxel_metadata_in_area(
-		Ref<VoxelBuffer> src_buffer,
-		Vector3i src_min_pos,
-		Vector3i src_max_pos,
-		Vector3i dst_pos
-) {
+		Ref<VoxelBuffer> src_buffer, Vector3i src_min_pos, Vector3i src_max_pos, Vector3i dst_pos) {
 	ERR_FAIL_COND(src_buffer.is_null());
 	_buffer->copy_voxel_metadata_in_area(
-			src_buffer->get_buffer(), Box3i::from_min_max(src_min_pos, src_max_pos), dst_pos
-	);
+			src_buffer->get_buffer(), Box3i::from_min_max(src_min_pos, src_max_pos), dst_pos);
 }
 
 void VoxelBuffer::clear_voxel_metadata_in_area(Vector3i min_pos, Vector3i max_pos) {
@@ -395,8 +382,7 @@ void VoxelBuffer::_bind_methods() {
 
 	ClassDB::bind_method(D_METHOD("set_voxel", "value", "x", "y", "z", "channel"), &VoxelBuffer::set_voxel, DEFVAL(0));
 	ClassDB::bind_method(
-			D_METHOD("set_voxel_f", "value", "x", "y", "z", "channel"), &VoxelBuffer::set_voxel_f, DEFVAL(0)
-	);
+			D_METHOD("set_voxel_f", "value", "x", "y", "z", "channel"), &VoxelBuffer::set_voxel_f, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("set_voxel_v", "value", "pos", "channel"), &VoxelBuffer::set_voxel_v, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("get_voxel", "x", "y", "z", "channel"), &VoxelBuffer::get_voxel, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("get_voxel_f", "x", "y", "z", "channel"), &VoxelBuffer::get_voxel_f, DEFVAL(0));
@@ -410,10 +396,8 @@ void VoxelBuffer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("fill_area", "value", "min", "max", "channel"), &VoxelBuffer::fill_area, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("fill_area_f", "value", "min", "max", "channel"), &VoxelBuffer::fill_area_f);
 	ClassDB::bind_method(D_METHOD("copy_channel_from", "other", "channel"), &VoxelBuffer::copy_channel_from);
-	ClassDB::bind_method(
-			D_METHOD("copy_channel_from_area", "other", "src_min", "src_max", "dst_min", "channel"),
-			&VoxelBuffer::copy_channel_from_area
-	);
+	ClassDB::bind_method(D_METHOD("copy_channel_from_area", "other", "src_min", "src_max", "dst_min", "channel"),
+			&VoxelBuffer::copy_channel_from_area);
 	ClassDB::bind_method(D_METHOD("downscale_to", "dst", "src_min", "src_max", "dst_min"), &VoxelBuffer::downscale_to);
 
 	ClassDB::bind_method(D_METHOD("is_uniform", "channel"), &VoxelBuffer::is_uniform);
@@ -427,21 +411,16 @@ void VoxelBuffer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_voxel_metadata", "pos"), &VoxelBuffer::get_voxel_metadata);
 	ClassDB::bind_method(D_METHOD("set_voxel_metadata", "pos", "value"), &VoxelBuffer::set_voxel_metadata);
 	ClassDB::bind_method(D_METHOD("for_each_voxel_metadata", "callback"), &VoxelBuffer::for_each_voxel_metadata);
-	ClassDB::bind_method(
-			D_METHOD("for_each_voxel_metadata_in_area", "callback", "min_pos", "max_pos"),
-			&VoxelBuffer::for_each_voxel_metadata_in_area
-	);
+	ClassDB::bind_method(D_METHOD("for_each_voxel_metadata_in_area", "callback", "min_pos", "max_pos"),
+			&VoxelBuffer::for_each_voxel_metadata_in_area);
 	ClassDB::bind_method(D_METHOD("clear_voxel_metadata"), &VoxelBuffer::clear_voxel_metadata);
 	ClassDB::bind_method(
-			D_METHOD("clear_voxel_metadata_in_area", "min_pos", "max_pos"), &VoxelBuffer::clear_voxel_metadata_in_area
-	);
+			D_METHOD("clear_voxel_metadata_in_area", "min_pos", "max_pos"), &VoxelBuffer::clear_voxel_metadata_in_area);
 	ClassDB::bind_method(
 			D_METHOD("copy_voxel_metadata_in_area", "src_buffer", "src_min_pos", "src_max_pos", "dst_min_pos"),
-			&VoxelBuffer::copy_voxel_metadata_in_area
-	);
+			&VoxelBuffer::copy_voxel_metadata_in_area);
 	ClassDB::bind_method(
-			D_METHOD("debug_print_sdf_y_slices", "scale"), &VoxelBuffer::debug_print_sdf_y_slices, DEFVAL(1.0)
-	);
+			D_METHOD("debug_print_sdf_y_slices", "scale"), &VoxelBuffer::debug_print_sdf_y_slices, DEFVAL(1.0));
 
 	BIND_ENUM_CONSTANT(CHANNEL_TYPE);
 	BIND_ENUM_CONSTANT(CHANNEL_SDF);

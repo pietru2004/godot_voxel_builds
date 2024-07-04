@@ -46,8 +46,7 @@ env.Append(CPPDEFINES=[
 
 is_editor_build = (env["target"] == "editor")
 
-include_tests = env["voxel_tests"]
-sources = common.get_sources(env, is_editor_build, include_tests)
+sources = common.get_sources(env, is_editor_build)
 
 # TODO Enhancement: the way SQLite is integrated should not be duplicated between Godot and GodotCpp targets.
 # It cannot be in the common script...

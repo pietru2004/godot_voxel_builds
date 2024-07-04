@@ -18,12 +18,8 @@ public:
 	static void create_singleton();
 	static void destroy_singleton();
 
-	struct Config {
-		zylann::voxel::VoxelEngine::Config inner;
-		bool ownership_checks;
-	};
-
-	static Config get_config_from_godot();
+	static zylann::voxel::VoxelEngine::ThreadsConfig get_config_from_godot(
+			unsigned int &out_main_thread_time_budget_usec);
 
 	VoxelEngine();
 
