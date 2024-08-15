@@ -9,11 +9,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Global Cache Settings a
+# Global Cache Settings
 # SCONS_CACHE for windows must be set in the build environment
 env:
   # GDExtension is still experimental, so we target latest instead of a "stable" Godot version.
-  GODOT_BASE_BRANCH: "4.2"
+  GODOT_BASE_BRANCH: "4.3-stable"
   SCONS_CACHE_MSVC_CONFIG: true
   SCONS_CACHE_LIMIT: 4096
   GODOT_CPP_PATH: thirdparty/godot-cpp
@@ -95,4 +95,3 @@ jobs:
         with:
           name: ${{matrix.executable_name}}
           path: project/addons/zylann.voxel/bin/${{matrix.executable_name}}
-
