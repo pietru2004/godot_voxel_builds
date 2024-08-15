@@ -1,4 +1,4 @@
-name: 🚪 Windows Extension Builds
+name: 🚪 Linux Extension Builds
 on:
   push:
     branches: [ master ]
