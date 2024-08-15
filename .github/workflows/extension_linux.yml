@@ -19,7 +19,7 @@ env:
   GODOT_CPP_PATH: thirdparty/godot-cpp
 
 jobs:
-  extension-windows:
+  extension-linux:
     # Windows 10 with latest image
     runs-on: "ubuntu-20.04"
     name: ${{matrix.name}}
@@ -30,12 +30,12 @@ jobs:
           - name: master Editor
             target: editor
             dev_build: no
-            executable_name: libvoxel.windows.editor.x86_64.so
+            executable_name: libvoxel.linux.editor.x86_64.so
 
           - name: master Release
             target: template_release
             dev_build: no
-            executable_name: libvoxel.windows.template_release.x86_64.so
+            executable_name: libvoxel.linux.template_release.x86_64.so
 
     steps:
       # Clone our repo
@@ -51,7 +51,7 @@ jobs:
       # Upload cache on completion and check it out now
       # Editing this is pretty dangerous for Windows since it can break and needs to be properly tested with a fresh cache.
       - name: Load .scons_cache directory
-        id: windows-editor-cache
+        id: linux-editor-cache
         #uses: ${{matrix.cache_action}}
         uses: actions/cache@v4
         with:
@@ -72,10 +72,11 @@ jobs:
           architecture: 'x64'
 
       # Setup scons, print python version and scons version info, so if anything is broken it won't run the build.
+      # python -m pip install scons pywin32
       - name: Configuring Python packages
         run: |
           python -c "import sys; print(sys.version)"
-          python -m pip install scons pywin32
+          python -m pip install scons
           python --version
           scons --version
 
@@ -85,7 +86,7 @@ jobs:
         env:
           SCONS_CACHE: /.scons_cache/
         run: |
-          scons platform=windows target=${{matrix.target}} dev_build=${{matrix.dev_build}}
+          scons platform=linux target=${{matrix.target}} dev_build=${{matrix.dev_build}}
           cd project/addons/zylann.voxel/bin
           dir
 
