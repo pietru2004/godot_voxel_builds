@@ -85,28 +85,44 @@ inline void remove_if(std::vector<T> &vec, F predicate) {
 }
 */
 
+struct DuplicateSearchResult {
+	size_t first;
+	size_t second;
+
+	inline bool is_null() const {
+		return first == second;
+	}
+
+	inline bool is_valid() const {
+		return !is_null();
+	}
+};
+
 template <typename T>
-size_t find_duplicate(Span<const T> items) {
+DuplicateSearchResult find_duplicate(Span<const T> items) {
 	for (unsigned int i = 0; i < items.size(); ++i) {
 		const T &a = items[i];
 		for (unsigned int j = i + 1; j < items.size(); ++j) {
 			if (items[j] == a) {
-				return j;
+				return { i, j };
 			}
 		}
 	}
-	return items.size();
+	return { 0, 0 };
 }
 
 template <typename T>
 bool has_duplicate(Span<const T> items) {
-	return find_duplicate(items) != items.size();
+	return find_duplicate(items).is_valid();
 }
 
 // Tests if POD items in an array are all the same.
 // Better tailored for more than hundred items that have power-of-two size.
 template <typename Item_T>
-inline bool is_uniform(const Item_T *p_data, size_t item_count) {
+inline bool is_uniform(const Item_T *p_data, const size_t item_count) {
+	// Testing uniformity of an empty buffer has no meaningful answer
+	ZN_ASSERT_RETURN_V(item_count > 0, false);
+
 	const Item_T v0 = p_data[0];
 
 	// typedef size_t Bucket_T;

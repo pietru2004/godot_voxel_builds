@@ -210,14 +210,16 @@ void VoxelInstancer::_notification(int p_what) {
 
 void VoxelInstancer::process() {
 	process_task_results();
-	if (_parent != nullptr && _library.is_valid() && _mesh_lod_distances[0] > 0.f) {
-		process_mesh_lods();
-	}
+	if (_parent != nullptr) {
+		if (_library.is_valid() && _mesh_lod_distances[0] > 0.f) {
+			process_mesh_lods();
+		}
 #ifdef TOOLS_ENABLED
-	if (_gizmos_enabled && is_visible_in_tree()) {
-		process_gizmos();
-	}
+		if (_gizmos_enabled && is_visible_in_tree()) {
+			process_gizmos();
+		}
 #endif
+	}
 }
 
 void VoxelInstancer::process_task_results() {
@@ -909,7 +911,18 @@ void VoxelInstancer::on_library_item_changed(int item_id, IInstanceLibraryItemLi
 			Ref<VoxelInstanceLibraryItem> item = _library->get_item(item_id);
 			ERR_FAIL_COND(item.is_null());
 			add_layer(item_id, item->get_lod_index());
-			regenerate_layer(item_id, true);
+			// In the editor, if you delete a VoxelInstancer, Godot doesn't actually delete it. Instead, it removes it
+			// from the scene tree and keeps it around in the UndoRedo history. But the node still receives
+			// notifications when the library gets modified... this leads to several issues:
+			// - Errors because the node needs to have access to World3D to update
+			// - In theory we could not require World3D, but then it still means a lot of processing has to occur to
+			// re-generate layers, which is wasted CPU for a node that isn't active or is "currently" deleted by the
+			// user.
+			// So we stop it from re-generating layers while in that state. I'm not sure to which extent we should
+			// be supporting out-of-tree automatic refresh... There might be more corner cases than this.
+			if (is_inside_tree()) {
+				regenerate_layer(item_id, true);
+			}
 			update_configuration_warnings();
 		} break;
 
@@ -919,7 +932,10 @@ void VoxelInstancer::on_library_item_changed(int item_id, IInstanceLibraryItemLi
 			break;
 
 		case IInstanceLibraryItemListener::CHANGE_GENERATOR:
-			regenerate_layer(item_id, false);
+			// Don't update in case the node was deleted in the editor...
+			if (is_inside_tree()) {
+				regenerate_layer(item_id, false);
+			}
 			break;
 
 		case IInstanceLibraryItemListener::CHANGE_VISUAL:
@@ -946,7 +962,10 @@ void VoxelInstancer::on_library_item_changed(int item_id, IInstanceLibraryItemLi
 			Lod &new_lod = _lods[layer.lod_index];
 			new_lod.layers.push_back(item_id);
 
-			regenerate_layer(item_id, true);
+			// Don't update in case the node was deleted in the editor...
+			if (is_inside_tree()) {
+				regenerate_layer(item_id, true);
+			}
 		} break;
 
 		default:
